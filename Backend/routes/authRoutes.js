@@ -1,52 +1,50 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../models/User'); 
 
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    console.log(`\n--- Login Attempt for: ${username} ---`); 
+    const { email, password } = req.body;
 
-    let user = await User.findOne({ username });
-    
-    // Auto-create OR Force-Update Admin: Gani / Gani@3010
-    if (username === 'Gani') {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('Gani@3010', salt);
+    // ==========================================
+    // 1. MASTER OVERRIDE: Hardcoded Admin Check
+    // ==========================================
+    // This ignores the database entirely and guarantees you can log in
+    if (email === 'Gani' && password === 'Gani@3010') {
+      const payload = { userId: 'admin_123' }; 
       
-      if (!user) {
-        console.log("User not found. Creating 'Gani' admin account...");
-        user = new User({ username: 'Gani', password: hashedPassword, name: 'Ganesh' });
-        await user.save();
-      } else {
-        console.log("User found. Force-resetting password in database to match Gani@3010...");
-        user.password = hashedPassword;
-        await user.save();
+      if (!process.env.JWT_SECRET) {
+          console.error("Missing JWT_SECRET in .env");
+          return res.status(500).json({ message: 'Server configuration error' });
       }
-    } else if (!user) {
-      console.log("Failed: Username not found in database.");
-      return res.status(400).json({ message: 'Invalid Credentials' });
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+      console.log("Success! Master Admin logged in.");
+      
+      return res.json({ 
+        token, 
+        user: { username: 'Gani', name: 'Ganesh Giri' } 
+      });
     }
 
-    // Compare the password typed in the frontend with the database hash
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      console.log("Failed: Passwords do not match.");
-      return res.status(400).json({ message: 'Invalid Credentials' });
+    // ==========================================
+    // 2. Standard Database Check
+    // ==========================================
+    // If you ever add normal users later, they will be checked here
+    let user = await User.findOne({ username: email });
+    
+    // (Note: If using bcrypt later, you'd use bcrypt.compare here)
+    if (!user || user.password !== password) {
+       console.log("Database login failed for:", email);
+       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const payload = { userId: user._id };
-    
-    if (!process.env.JWT_SECRET) {
-        throw new Error("JWT_SECRET is missing from the .env file!");
-    }
-
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
     
-    console.log("Success! Token generated and sent to frontend.");
     res.json({ token, user: { username: user.username, name: user.name } });
+
   } catch (err) {
     console.error("Login 500 Error:", err.message);
     res.status(500).json({ message: 'Server Error' });
