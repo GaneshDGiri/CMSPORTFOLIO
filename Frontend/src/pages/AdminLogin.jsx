@@ -46,10 +46,13 @@ export default function AdminLogin() {
           <div className="relative">
             <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
             <input required type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClasses} />
+            
+            {/* UPDATED PASSWORD HINT */}
             <div className="mt-2 flex items-center gap-1 text-xs text-blue-500 dark:text-blue-400 italic">
               <Info size={12} />
-              <span>Hint: Gani@30...</span>
+              <span>Hint: Gani@</span>
             </div>
+            
           </div>
           <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition shadow-lg">
             Sign In
