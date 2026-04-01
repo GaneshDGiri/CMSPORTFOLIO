@@ -15,12 +15,15 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/login', { email, password });
+      // FIX: Changed from '/login' to '/auth/login' to match your server.js
+      const response = await api.post('/auth/login', { email, password });
+      
       localStorage.setItem('token', response.data.token);
       setUser(response.data.user || { name: 'Gani' });
+      return response.data; 
     } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
+      console.error("Login failed:", error.response?.data?.message || error.message);
+      throw error; 
     }
   };
 
